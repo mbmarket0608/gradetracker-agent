@@ -5,7 +5,7 @@
 // schneller, robuster, kein Chromium-Memory-Crash mehr moeglich.
 
 import * as cheerio from 'cheerio';
-import { scrapeHtml } from './lib/scrapingfish.js';
+import { fetchHtmlViaHome } from './lib/homeFetch.js';
 import type { EbaySale } from './types.js';
 
 // ─── API ─────────────────────────────────────────────────────────────────
@@ -22,7 +22,7 @@ export async function searchSoldListings(opts: SearchSoldOptions): Promise<EbayS
   // render_js=true: eBay-Suchergebnisse sind groesstenteils SSR aber haben
   // lazy-loaded Bereiche. Sicherheitshalber mit JS-Render, kostet uns ein
   // paar Cent mehr aber liefert verlaesslich.
-  const html = await scrapeHtml(url, { renderJs: true });
+  const html = await fetchHtmlViaHome(url);
   return parseSoldListings(html, opts.minPriceUsd, opts.hoursBack);
 }
 
@@ -38,7 +38,7 @@ export async function searchSoldHistory(opts: SearchHistoryOptions): Promise<Eba
     minPriceUsd: 0,
     hoursBack: opts.daysBack * 24,
   });
-  const html = await scrapeHtml(url, { renderJs: true });
+  const html = await fetchHtmlViaHome(url);
   const all = parseSoldListings(html, 0, opts.daysBack * 24);
   if (!opts.sellerWhitelist || opts.sellerWhitelist.length === 0) return all;
   const wl = opts.sellerWhitelist.map(s => s.toLowerCase());
