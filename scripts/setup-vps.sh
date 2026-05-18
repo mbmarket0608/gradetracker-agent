@@ -62,8 +62,10 @@ else
 fi
 
 # ─── 5) Dependencies ─────────────────────────────────────────────────────
+# Lock-File invalidieren falls package.json aktualisiert wurde, damit npm
+# wirklich die neuen Versionen zieht.
 log "npm install"
-sudo -u "$SVC_USER" bash -c "cd $APP_DIR && npm install"
+sudo -u "$SVC_USER" bash -c "cd $APP_DIR && rm -f package-lock.json && npm install"
 
 # Chromium-System-Libs explizit (Playwright kennt Ubuntu 25+/26+ noch nicht
 # als bekanntes Image — wir installieren die Libs selbst und skippen die
