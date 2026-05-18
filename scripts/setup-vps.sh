@@ -23,11 +23,12 @@ PORT="${PORT:-8080}"
 log() { echo -e "\n\033[1;36m>>> $*\033[0m"; }
 
 # ─── 1) System-Pakete ────────────────────────────────────────────────────
+# Browser-System-Deps installiert Playwright spaeter selbst via
+# `playwright install --with-deps chromium` — das mapped automatisch auf
+# die korrekten Paketnamen, egal welche Ubuntu-Version. Hier nur das Minimum.
 log "Aktualisiere Paketquellen + installiere Basis-Pakete"
 apt-get update -y
-apt-get install -y curl git ca-certificates gnupg ufw build-essential \
-  libnss3 libatk-bridge2.0-0 libdrm2 libgbm1 libxkbcommon0 libxcomposite1 \
-  libxdamage1 libxfixes3 libxrandr2 libasound2 libatspi2.0-0 libcups2
+apt-get install -y curl git ca-certificates gnupg ufw build-essential
 
 # ─── 2) Node.js 22 ───────────────────────────────────────────────────────
 if ! command -v node >/dev/null 2>&1 || ! node --version | grep -q "^v${NODE_VER}\."; then
@@ -58,11 +59,13 @@ fi
 chown -R "$SVC_USER:$SVC_USER" "$APP_DIR"
 
 # ─── 5) Dependencies ─────────────────────────────────────────────────────
-log "npm install + playwright chromium"
+log "npm install"
 sudo -u "$SVC_USER" bash -c "cd $APP_DIR && npm install"
+# Playwright + System-Deps in einem Schritt (root benoetigt fuer apt installs).
+# --with-deps mapped auf die korrekten Paketnamen der vorhandenen Ubuntu-Version.
+log "playwright install --with-deps chromium"
 sudo -u "$SVC_USER" bash -c "cd $APP_DIR && npx playwright install chromium"
-# Browser-System-Deps muessen als root installiert werden
-npx --prefix "$APP_DIR" playwright install-deps chromium || true
+(cd "$APP_DIR" && npx playwright install-deps chromium)
 
 # ─── 6) Build ────────────────────────────────────────────────────────────
 log "Build"
