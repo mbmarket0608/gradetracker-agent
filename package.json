@@ -1,0 +1,30 @@
+{
+  "name": "gradetracker-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Daily-Run-Service: scraped eBay + Cardmarket, befuellt den Einkaufsplan in GradeTracker, sammelt Daten-Quality-Verdachtsfaelle.",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "run-once": "tsx src/cli/runOnce.ts",
+    "playwright:install": "playwright install chromium",
+    "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.65.0",
+    "@supabase/supabase-js": "^2.105.1",
+    "dotenv": "^16.4.5",
+    "node-cron": "^3.0.3",
+    "playwright": "^1.48.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.0",
+    "@types/node-cron": "^3.0.11",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}

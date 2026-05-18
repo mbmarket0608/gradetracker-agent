@@ -1,0 +1,22 @@
+node_modules
+dist
+.env
+.env.local
+.env.*.local
+
+# Playwright Browser-State (Login-Cookies) - NICHT ins Repo
+playwright-state/
+*.cookies.json
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/*
+!.vscode/settings.json.example
+.idea
