@@ -78,8 +78,10 @@ apt-get install -y \
   libasound2 libatk-bridge2.0-0 libatspi2.0-0 libcups2 libdrm2 \
   libxshmfence1 libpango-1.0-0 libcairo2 libxss1 libgtk-3-0 || true
 
-log "playwright install chromium (skip host validation)"
-sudo -u "$SVC_USER" bash -c "cd $APP_DIR && PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS=1 npx playwright install chromium"
+log "playwright install chromium (ubuntu24.04 override)"
+# PLAYWRIGHT_HOST_PLATFORM_OVERRIDE zwingt Playwright, ein bekanntes Image-Tag
+# zu nehmen — Chromium-Binaries sind auf neueren Ubuntus binaerkompatibel.
+sudo -u "$SVC_USER" bash -c "cd $APP_DIR && PLAYWRIGHT_HOST_PLATFORM_OVERRIDE=ubuntu24.04 PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS=1 npx playwright install chromium"
 
 # ─── 6) Build ────────────────────────────────────────────────────────────
 log "Build"
@@ -97,6 +99,8 @@ Type=simple
 User=$SVC_USER
 WorkingDirectory=$APP_DIR
 EnvironmentFile=$APP_DIR/.env
+Environment=PLAYWRIGHT_HOST_PLATFORM_OVERRIDE=ubuntu24.04
+Environment=PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS=1
 ExecStart=/usr/bin/node $APP_DIR/dist/index.js
 Restart=on-failure
 RestartSec=10
