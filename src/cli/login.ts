@@ -1,6 +1,6 @@
-// Lokales Login-Helper-Skript: oeffnet einen sichtbaren Browser, du loggst
-// dich manuell bei eBay + Cardmarket ein, drueckst danach Enter im Terminal —
-// das Skript speichert die Cookies in playwright-state/{ebay,cardmarket}.json.
+// Lokales Login-Helper-Skript: oeffnet einen sichtbaren Browser fuer
+// Cardmarket-Login. eBay-Sold-Listings sind public, brauchen kein Login.
+// Cookies werden in playwright-state/cardmarket.json gespeichert.
 //
 // Verwendung (auf dem lokalen PC, NICHT auf der VPS):
 //   npm run login
@@ -35,15 +35,13 @@ async function loginSite(name: string, url: string, stateFile: string, locale: s
 }
 
 (async () => {
-  console.log('Initial-Login fuer GradeTracker-Agent.\n');
-  console.log('Es oeffnen sich nacheinander 2 Browser-Fenster (eBay, dann Cardmarket).');
-  console.log('Logge dich jeweils ein und bestaetige mit ENTER hier im Terminal.\n');
+  console.log('Initial-Login fuer GradeTracker-Agent (nur Cardmarket).\n');
+  console.log('Es oeffnet sich ein Browser-Fenster. Logge dich ein, dann ENTER hier.\n');
 
-  await loginSite('eBay',       'https://www.ebay.com/signin/',                path.join(STATE_DIR, 'ebay.json'),       'en-US');
   await loginSite('Cardmarket', 'https://www.cardmarket.com/de/Account/Login', path.join(STATE_DIR, 'cardmarket.json'), 'de-DE');
 
   console.log('\n────────────────────────────────────────────────────────────────');
-  console.log('✓ Fertig! Beide Cookie-Files liegen in:  ' + path.resolve(STATE_DIR));
+  console.log('✓ Fertig! Cookie-File liegt in:  ' + path.resolve(STATE_DIR));
   console.log('\nHochladen auf die VPS:');
   console.log('  scp -r playwright-state root@<vps-ip>:/opt/gradetracker-agent/');
   console.log('  ssh root@<vps-ip> "chown -R agent:agent /opt/gradetracker-agent/playwright-state"');
