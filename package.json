@@ -11,6 +11,7 @@
     "run-once": "tsx src/cli/runOnce.ts",
     "login": "tsx src/cli/login.ts",
     "debug-ebay": "tsx src/cli/debugEbay.ts",
+    "debug-cm": "tsx src/cli/debugCm.ts",
     "playwright:install": "playwright install chromium",
     "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit"
@@ -18,6 +19,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.65.0",
     "@supabase/supabase-js": "^2.105.1",
+    "cheerio": "^1.0.0",
     "dotenv": "^16.4.5",
     "node-cron": "^3.0.3",
     "playwright": "^1.60.0",
