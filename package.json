@@ -13,6 +13,7 @@
     "debug-ebay": "tsx src/cli/debugEbay.ts",
     "debug-cm": "tsx src/cli/debugCm.ts",
     "debug-ebay-sf": "tsx src/cli/debugEbaySf.ts",
+    "login-ebay": "tsx src/cli/loginEbay.ts",
     "playwright:install": "playwright install chromium",
     "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit"
