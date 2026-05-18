@@ -62,10 +62,13 @@ else
 fi
 
 # ─── 5) Dependencies ─────────────────────────────────────────────────────
-# Lock-File invalidieren falls package.json aktualisiert wurde, damit npm
-# wirklich die neuen Versionen zieht.
-log "npm install"
-sudo -u "$SVC_USER" bash -c "cd $APP_DIR && rm -f package-lock.json && npm install"
+# node_modules + lock zusammen weg, damit npm beim Re-Run wirklich die in
+# package.json aktualisierten Versionen installiert (sonst sieht es "up to
+# date" und uebernimmt nichts).
+log "npm install (frisch — node_modules + lock werden zurueckgesetzt)"
+sudo -u "$SVC_USER" bash -c "cd $APP_DIR && rm -rf node_modules package-lock.json && npm install"
+# Sanity-Check: Playwright-Version anzeigen
+sudo -u "$SVC_USER" bash -c "cd $APP_DIR && node -e 'console.log(\"Playwright installiert:\", require(\"playwright/package.json\").version)'"
 
 # Chromium-System-Libs explizit (Playwright kennt Ubuntu 25+/26+ noch nicht
 # als bekanntes Image — wir installieren die Libs selbst und skippen die
