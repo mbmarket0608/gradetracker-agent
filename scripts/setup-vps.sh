@@ -61,11 +61,22 @@ chown -R "$SVC_USER:$SVC_USER" "$APP_DIR"
 # ─── 5) Dependencies ─────────────────────────────────────────────────────
 log "npm install"
 sudo -u "$SVC_USER" bash -c "cd $APP_DIR && npm install"
-# Playwright + System-Deps in einem Schritt (root benoetigt fuer apt installs).
-# --with-deps mapped auf die korrekten Paketnamen der vorhandenen Ubuntu-Version.
-log "playwright install --with-deps chromium"
-sudo -u "$SVC_USER" bash -c "cd $APP_DIR && npx playwright install chromium"
-(cd "$APP_DIR" && npx playwright install-deps chromium)
+
+# Chromium-System-Libs explizit (Playwright kennt Ubuntu 25+/26+ noch nicht
+# als bekanntes Image — wir installieren die Libs selbst und skippen die
+# Validierung). t64-Varianten fuer aktuelle Ubuntu-Versionen.
+log "Installiere Chromium-System-Libs"
+apt-get install -y \
+  libnss3 libgbm1 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 \
+  libasound2t64 libatk-bridge2.0-0t64 libatspi2.0-0t64 libcups2t64 libdrm2 \
+  libxshmfence1 libpango-1.0-0 libcairo2 libxss1 libgtk-3-0t64 || \
+apt-get install -y \
+  libnss3 libgbm1 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 \
+  libasound2 libatk-bridge2.0-0 libatspi2.0-0 libcups2 libdrm2 \
+  libxshmfence1 libpango-1.0-0 libcairo2 libxss1 libgtk-3-0 || true
+
+log "playwright install chromium (skip host validation)"
+sudo -u "$SVC_USER" bash -c "cd $APP_DIR && PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS=1 npx playwright install chromium"
 
 # ─── 6) Build ────────────────────────────────────────────────────────────
 log "Build"
