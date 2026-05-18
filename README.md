@@ -44,28 +44,40 @@ Manueller Run: `npm run run-once`
 
 ## VPS-Deployment (Hetzner CX22, Ubuntu 22.04)
 
+**Ein-Befehl-Setup** (frische Ubuntu 22.04 VM als root):
+
 ```bash
-# Auf der VPS:
-apt update && apt install -y nodejs npm git
-curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
-apt install -y nodejs
-npm install -g pm2
-
-git clone <repo-url> /opt/gradetracker-agent
-cd /opt/gradetracker-agent
-npm install
-npx playwright install --with-deps chromium
-
-# .env hochladen oder via scp uebertragen
-# WICHTIG: Service-Role-Key, nicht anon-Key
-
-npm run build
-pm2 start dist/index.js --name agent
-pm2 startup
-pm2 save
+curl -fsSL https://raw.githubusercontent.com/mbmarket0608/gradetracker-agent/main/scripts/setup-vps.sh | bash
 ```
 
-Cron läuft automatisch über `node-cron` im Service. Health-Endpoint auf Port 8080 (kann über Caddy/nginx + Domain + TLS exponiert werden).
+Das Skript installiert Node 22, klont das Repo nach `/opt/gradetracker-agent`, installiert Dependencies + Playwright Chromium, erzeugt einen `systemd`-Service als unprivilegierter User `agent` und öffnet die Firewall.
+
+**Danach manuell** (3 Schritte):
+
+1. **`.env` hochladen** (Werte aus `.env.example` ausfüllen):
+   ```bash
+   scp .env root@<vps-ip>:/opt/gradetracker-agent/.env
+   ssh root@<vps-ip> "chown agent:agent /opt/gradetracker-agent/.env && chmod 600 /opt/gradetracker-agent/.env"
+   ```
+
+2. **Initial-Login** auf dem lokalen PC, Cookies hochladen:
+   ```bash
+   HEADFUL=1 npm run dev
+   # → Browser öffnet, bei eBay + Cardmarket einloggen
+   scp -r playwright-state root@<vps-ip>:/opt/gradetracker-agent/
+   ssh root@<vps-ip> "chown -R agent:agent /opt/gradetracker-agent/playwright-state"
+   ```
+
+3. **Service starten**:
+   ```bash
+   ssh root@<vps-ip> "systemctl enable --now gradetracker-agent && systemctl status gradetracker-agent"
+   curl http://<vps-ip>:8080/health
+   ```
+
+4. **GradeTracker → Vercel auf den Service zeigen** lassen:
+   `Settings → Environment Variables → VITE_AGENT_SERVICE_URL=https://<deine-vps-domain>` → Redeploy.
+
+Cron läuft automatisch über `node-cron` im Service. Logs: `journalctl -fu gradetracker-agent`.
 
 ## Initial Login
 
