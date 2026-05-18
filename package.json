@@ -9,6 +9,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "run-once": "tsx src/cli/runOnce.ts",
+    "login": "tsx src/cli/login.ts",
     "playwright:install": "playwright install chromium",
     "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit"
