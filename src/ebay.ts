@@ -28,7 +28,18 @@ async function ensureBrowser(): Promise<{ page: Page }> {
     // - --disable-gpu: keine GPU im headless, weniger Crashes
     browser = await chromium.launch({
       headless: !HEADFUL,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--disable-software-rasterizer',
+        '--disable-extensions',
+        '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-renderer-backgrounding',
+        '--js-flags=--max-old-space-size=2048',
+      ],
     });
   }
   if (!context) {

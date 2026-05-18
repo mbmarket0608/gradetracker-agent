@@ -22,6 +22,17 @@ PORT="${PORT:-8080}"
 
 log() { echo -e "\n\033[1;36m>>> $*\033[0m"; }
 
+# ─── 0) Swap-File (Chromium ist memory-greedy, CX22 hat by default kein swap) ─
+if [ ! -f /swapfile ]; then
+  log "Lege 2GB-Swap-File an"
+  fallocate -l 2G /swapfile
+  chmod 600 /swapfile
+  mkswap /swapfile
+  swapon /swapfile
+  grep -q "^/swapfile" /etc/fstab || echo "/swapfile none swap sw 0 0" >> /etc/fstab
+  log "Swap aktiv: $(swapon --show)"
+fi
+
 # ─── 1) System-Pakete ────────────────────────────────────────────────────
 # Browser-System-Deps installiert Playwright spaeter selbst via
 # `playwright install --with-deps chromium` — das mapped automatisch auf

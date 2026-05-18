@@ -21,7 +21,15 @@ let context: BrowserContext | null = null;
 async function ensureBrowser(): Promise<{ page: Page }> {
   if (!browser) browser = await chromium.launch({
     headless: !HEADFUL,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-gpu',
+      '--disable-software-rasterizer',
+      '--disable-extensions',
+      '--js-flags=--max-old-space-size=2048',
+    ],
   });
   if (!context) {
     await fs.mkdir(STATE_DIR, { recursive: true });
