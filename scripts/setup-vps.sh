@@ -46,8 +46,11 @@ fi
 
 # ─── 4) Repo klonen / aktualisieren ──────────────────────────────────────
 if [ -d "$APP_DIR/.git" ]; then
-  log "Repo existiert, pulle latest"
-  git -C "$APP_DIR" pull
+  log "Repo existiert, pulle latest (als $SVC_USER)"
+  # safe.directory: bei einem fremd-besitzten Verzeichnis verweigert git 2.36+
+  # standardmaessig den Zugriff. Wir pullen als der Owner-User.
+  chown -R "$SVC_USER:$SVC_USER" "$APP_DIR"
+  sudo -u "$SVC_USER" git -C "$APP_DIR" pull --rebase --autostash
 else
   log "Klone Repo nach $APP_DIR"
   if [ -n "${GITHUB_TOKEN:-}" ]; then
@@ -55,8 +58,8 @@ else
   else
     git clone "$REPO_URL" "$APP_DIR"
   fi
+  chown -R "$SVC_USER:$SVC_USER" "$APP_DIR"
 fi
-chown -R "$SVC_USER:$SVC_USER" "$APP_DIR"
 
 # ─── 5) Dependencies ─────────────────────────────────────────────────────
 log "npm install"
