@@ -19,7 +19,10 @@ let browser: Browser | null = null;
 let context: BrowserContext | null = null;
 
 async function ensureBrowser(): Promise<{ page: Page }> {
-  if (!browser) browser = await chromium.launch({ headless: !HEADFUL });
+  if (!browser) browser = await chromium.launch({
+    headless: !HEADFUL,
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
+  });
   if (!context) {
     await fs.mkdir(STATE_DIR, { recursive: true });
     const storageState = await fileExists(STATE_FILE) ? STATE_FILE : undefined;

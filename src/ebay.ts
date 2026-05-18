@@ -21,7 +21,15 @@ let context: BrowserContext | null = null;
 
 async function ensureBrowser(): Promise<{ page: Page }> {
   if (!browser) {
-    browser = await chromium.launch({ headless: !HEADFUL });
+    // Browser-Args fuer stabilen Lauf auf VPS:
+    // - --no-sandbox: kein User-Namespace auf root-VPS
+    // - --disable-dev-shm-usage: nutzt /tmp statt /dev/shm (oft nur 64MB auf VPS)
+    //   → ohne das crashed Chromium beim Laden grosser Seiten ("Target crashed")
+    // - --disable-gpu: keine GPU im headless, weniger Crashes
+    browser = await chromium.launch({
+      headless: !HEADFUL,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
+    });
   }
   if (!context) {
     await fs.mkdir(STATE_DIR, { recursive: true });

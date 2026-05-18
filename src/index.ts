@@ -13,6 +13,14 @@ import cron from 'node-cron';
 import { runDaily } from './dailyRun.js';
 import { supabase } from './lib/supabase.js';
 
+// Safety-Net: ein einzelner gescheiterter Run darf den Service nicht killen.
+process.on('unhandledRejection', (reason) => {
+  console.error('[unhandledRejection]', reason instanceof Error ? `${reason.name}: ${reason.message}\n${reason.stack}` : reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error('[uncaughtException]', err);
+});
+
 const PORT = parseInt(process.env.PORT || '8080', 10);
 const SCHEDULE = process.env.CRON_SCHEDULE || '30 6 * * *';
 const TZ = process.env.CRON_TIMEZONE || 'Europe/Berlin';
@@ -43,7 +51,11 @@ const server = http.createServer(async (req, res) => {
       }
       activeRun = runDaily('manual')
         .then(r => { activeRun = null; return r; })
-        .catch(e => { activeRun = null; throw e; });
+        .catch(e => {
+          activeRun = null;
+          console.error('[manual run] failed:', e instanceof Error ? `${e.name}: ${e.message}` : e);
+          return { runId: '' };
+        });
       // Antwort sofort senden, Run laeuft im Hintergrund
       return json(res, 202, { ok: true, message: 'Run gestartet' });
     }
