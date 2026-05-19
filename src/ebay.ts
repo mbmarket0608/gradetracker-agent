@@ -95,6 +95,7 @@ export async function searchSoldListings(opts: SearchSoldOptions): Promise<EbayS
   try {
     const url = buildSearchUrl(opts);
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+    await waitPastAkamaiChallenge(page);
     return await extractItemsFromPage(page, opts.minPriceUsd, opts.hoursBack);
   } finally {
     await page.close();
@@ -112,12 +113,39 @@ export async function searchSoldHistory(opts: SearchHistoryOptions): Promise<Eba
   try {
     const url = buildSearchUrl({ searchTerm: opts.query, minPriceUsd: 0, hoursBack: opts.daysBack * 24 });
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+    await waitPastAkamaiChallenge(page);
     const all = await extractItemsFromPage(page, 0, opts.daysBack * 24);
     if (!opts.sellerWhitelist || opts.sellerWhitelist.length === 0) return all;
     const wl = opts.sellerWhitelist.map(s => s.toLowerCase());
     return all.filter(s => wl.includes(s.seller.toLowerCase()));
   } finally {
     await page.close();
+  }
+}
+
+// ─── Akamai-Challenge-Handler ────────────────────────────────────────────
+
+// Akamai stuft den Bot-Manager-Score regelmaessig herab und zeigt dann eine
+// "Pardon Our Interruption"-JavaScript-Challenge. In einem echten Browser
+// laeuft das JS-Snippet, loest die Challenge und redirected zurueck.
+// Wir warten darauf — bis zu 20 Sekunden.
+async function waitPastAkamaiChallenge(page: Page): Promise<void> {
+  const url = page.url();
+  const title = await page.title().catch(() => '');
+  const isChallenge = url.includes('/splashui/challenge') || /Pardon Our Interruption/i.test(title);
+  if (!isChallenge) return;
+
+  console.log('[ebay] Akamai-Challenge detected, waiting up to 20s for auto-resolve…');
+  try {
+    await page.waitForURL((u) => !u.toString().includes('/splashui/challenge'), { timeout: 20_000 });
+    console.log('[ebay] Challenge resolved, continuing.');
+  } catch {
+    // Persist current cookies so the user can inspect / refresh
+    throw new Error(
+      'Akamai-Challenge nicht innerhalb 20s aufgeloest — vermutlich Cookies veraltet ' +
+      'oder Bot-Score zu niedrig. Loesung: lokal `npm run login-ebay` neu ausfuehren, dann ' +
+      'playwright-state/ebay.json hochladen.'
+    );
   }
 }
 
