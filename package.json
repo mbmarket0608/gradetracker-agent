@@ -15,6 +15,7 @@
     "debug-ebay-sf": "tsx src/cli/debugEbaySf.ts",
     "login-ebay": "tsx src/cli/loginEbay.ts",
     "debug-ebay-cookies": "tsx src/cli/debugEbayCookies.ts",
+    "debug-cm-search": "tsx src/cli/debugCmSearch.ts",
     "playwright:install": "playwright install chromium",
     "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit"
