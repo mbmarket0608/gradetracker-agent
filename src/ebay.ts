@@ -81,7 +81,9 @@ function filterByAge(items: EbaySale[], hoursBack: number): EbaySale[] {
   const daysBack = Math.max(1, Math.ceil(hoursBack / 24));
   const cutoff = new Date();
   cutoff.setHours(0, 0, 0, 0);
-  cutoff.setDate(cutoff.getDate() - (daysBack - 1));
+  // Mit hoursBack=24 wollen wir "gestern und heute" einschliessen.
+  // setDate(-daysBack) bewegt cutoff auf gestern 00:00 (bei daysBack=1).
+  cutoff.setDate(cutoff.getDate() - daysBack);
   const cutoffMs = cutoff.getTime();
   return items.filter(it => new Date(it.soldDate).getTime() >= cutoffMs);
 }
