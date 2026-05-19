@@ -75,6 +75,11 @@ export async function runDaily(trigger: RunTrigger): Promise<{ runId: string; st
     const sessionId = await getOrCreateTodaySession();
     let qualified = 0;
 
+    let skippedNoPsa10 = 0;
+    let skippedNoCm = 0;
+    const skippedNoPsa10Names: string[] = [];
+    const skippedNoCmNames: string[] = [];
+
     for (const { sale, catalog: cat } of matched) {
       if (!cat) continue;
 
@@ -85,12 +90,23 @@ export async function runDaily(trigger: RunTrigger): Promise<{ runId: string; st
         daysBack: 14,
         extendedDaysBack: 28,
       });
-      if (!psa10) continue;
+      if (!psa10) {
+        skippedNoPsa10++;
+        if (skippedNoPsa10Names.length < 5) skippedNoPsa10Names.push(cat.name);
+        console.log(`[skip] ${cat.name} (${cat.cardId || '—'}): kein PSA10-Sample gefunden`);
+        continue;
+      }
 
       // ── Schritt 4: Cardmarket-Pick ──────────────────────────────────────
       const language = pickLanguagePreference(cat);
       const cmListing = await findCheapestQualifiedListing(cat, { preferredLanguage: language });
-      if (!cmListing) continue;
+      if (!cmListing) {
+        skippedNoCm++;
+        if (skippedNoCmNames.length < 5) skippedNoCmNames.push(cat.name);
+        console.log(`[skip] ${cat.name} (${cat.cardId || '—'}): kein qualifiziertes Cardmarket-Listing`);
+        continue;
+      }
+      console.log(`[ok] ${cat.name}: cm=${cmListing.totalEur}€, psa10=${psa10.weightedPriceEur}€`);
 
       // ── Schritt 5: DQ-Check ─────────────────────────────────────────────
       const dqFlags = checkDataQuality(cat, psa10.weightedPriceEur, DQ_FACTOR);
@@ -109,7 +125,14 @@ export async function runDaily(trigger: RunTrigger): Promise<{ runId: string; st
       qualified++;
     }
     stats.qualifiedOpps = qualified;
-    await stepPricing.finish({ summary: `${qualified} Einkaufsplan-Eintraege persistiert` });
+    await stepPricing.finish({
+      summary: `${qualified} Eintraege · ${skippedNoPsa10} ohne PSA10 · ${skippedNoCm} ohne CM-Listing`,
+      qualified,
+      skippedNoPsa10,
+      skippedNoCm,
+      skippedNoPsa10Names,
+      skippedNoCmNames,
+    });
     await persistCmState();
 
     await finishAgentRun(runId, stats);

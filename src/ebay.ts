@@ -155,17 +155,21 @@ async function extractItemsFromPage(page: Page, minPriceUsd: number, hoursBack: 
   // eBay nutzt mittlerweile 'li.s-card' parallel zu 'li.s-item' (gleicher Inhalt,
   // neueres Markup). Wir queryn beide.
   const raw = await page.$$eval('li.s-item, li.s-card', (els) => els.map((el) => {
-    const titleEl  = el.querySelector('.s-item__title, .s-card__title, [role="heading"]');
+    const titleEl  = el.querySelector('.s-item__title, .s-card__title, [role="heading"], .su-styled-text.primary.default');
     const priceEl  = el.querySelector('.s-item__price, .s-card__price, [class*="price"]');
-    const dateEl   = el.querySelector('.s-item__caption .POSITIVE, .s-item__title--tagblock .POSITIVE, [class*="caption"] [class*="POSITIVE"]');
+    // soldDate-Patterns: gruene 'Sold MMM DD'-Markierung in caption ODER subtitle ODER direkt nach price
+    const dateEl   = el.querySelector('.s-item__caption .POSITIVE, .s-item__title--tagblock .POSITIVE, [class*="caption"] .POSITIVE, .s-card__caption .POSITIVE');
+    // Alternativer Date-Search: gesamter Caption-Text durchsuchen
+    const captionAllEl = el.querySelector('.s-item__caption, .s-card__caption, [class*="caption"]');
     const linkEl   = el.querySelector('a.s-item__link, a.s-card__link, a[href*="/itm/"]') as HTMLAnchorElement | null;
-    const sellerEl = el.querySelector('.s-item__seller-info-text, [class*="seller-info"]');
+    // Seller-Selectoren: neues Markup nutzt verschiedene Klassen
+    const sellerEl = el.querySelector('.s-item__seller-info-text, [class*="seller-info"], [class*="s-card__subtitle"]');
     return {
-      title:      (titleEl?.textContent || '').trim(),
-      priceText:  (priceEl?.textContent || '').trim(),
-      dateText:   (dateEl?.textContent || '').trim(),
-      listingUrl: linkEl?.href || '',
-      sellerText: (sellerEl?.textContent || '').trim(),
+      title:        (titleEl?.textContent || '').trim(),
+      priceText:    (priceEl?.textContent || '').trim(),
+      dateText:     (dateEl?.textContent || '').trim() || (captionAllEl?.textContent || '').trim(),
+      listingUrl:   linkEl?.href || '',
+      sellerText:   (sellerEl?.textContent || '').trim(),
     };
   }));
 
