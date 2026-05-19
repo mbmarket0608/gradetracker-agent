@@ -83,12 +83,18 @@ export async function runDaily(trigger: RunTrigger): Promise<{ runId: string; st
     for (const { sale, catalog: cat } of matched) {
       if (!cat) continue;
 
+      // Min-Price-Floor fuer History-Suche: 50% des Katalog-PSA10 als Untergrenze.
+      // Verhindert dass niedrigpreisige Bulk/Raw-Auctions den PSA10-Schnitt verzerren.
+      // Wenn Katalog keinen PSA10 hat: $200 als globaler Floor.
+      const catalogPsa10Usd = cat.psa10Price ? Math.round(cat.psa10Price / 0.85) : 0;
+      const minPriceUsd = catalogPsa10Usd > 0 ? Math.round(catalogPsa10Usd * 0.5) : 200;
       const psa10 = await aggregatePsa10Price({
         cardName: cat.name,
         cardId: cat.cardId,
         preferredSellers: PREFERRED_SELLERS,
         daysBack: 14,
         extendedDaysBack: 28,
+        minPriceUsd,
       });
       if (!psa10) {
         skippedNoPsa10++;
@@ -179,12 +185,13 @@ function pickLanguagePreference(cat: { tcg: string; language: string }): 'Englis
 }
 
 function checkDataQuality(
-  cat: { id: string; name: string; psa10Price?: number; imageUrl?: string | null },
+  cat: { id: string; name: string; set?: string; cardId?: string | null; psa10Price?: number; imageUrl?: string | null },
   newPsa10Eur: number,
   factor: number,
 ): DataQualityFlag[] {
   const flags: DataQualityFlag[] = [];
   const old = cat.psa10Price || 0;
+  const cardLabel = `${cat.name}${cat.cardId ? ` (${cat.cardId})` : ''}${cat.set ? ` · ${cat.set}` : ''}`;
 
   if (old > 0 && newPsa10Eur > 0) {
     const ratio = Math.max(old, newPsa10Eur) / Math.min(old, newPsa10Eur);
@@ -193,7 +200,10 @@ function checkDataQuality(
         kind: 'price_mismatch',
         catalogId: cat.id,
         payload: {
-          summary: `Katalog ${old.toFixed(0)}€ vs. neu ${newPsa10Eur.toFixed(0)}€ — Faktor ${ratio.toFixed(1)}×`,
+          summary: `${cardLabel}: Katalog ${old.toFixed(0)}€ vs. neu ${newPsa10Eur.toFixed(0)}€ (Faktor ${ratio.toFixed(1)}×)`,
+          cardName: cat.name,
+          cardId: cat.cardId,
+          set: cat.set,
           old, new: newPsa10Eur, ratio,
         },
       });
@@ -204,7 +214,12 @@ function checkDataQuality(
     flags.push({
       kind: 'image_mismatch',
       catalogId: cat.id,
-      payload: { summary: `Kein Bild im Katalog (${cat.name})` },
+      payload: {
+        summary: `${cardLabel}: kein Bild im Katalog`,
+        cardName: cat.name,
+        cardId: cat.cardId,
+        set: cat.set,
+      },
     });
   }
 

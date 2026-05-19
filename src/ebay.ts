@@ -33,15 +33,18 @@ interface SearchHistoryOptions {
   query: string;
   daysBack: number;
   sellerWhitelist?: string[];
+  minPriceUsd?: number;
 }
 
 export async function searchSoldHistory(opts: SearchHistoryOptions): Promise<EbaySale[]> {
-  const data = await ebaySearch({
+  const params: Record<string, string> = {
     _nkw: opts.query,
     show_only: 'Sold',
     buying_format: 'Auction',
     _sop: '1',
-  });
+  };
+  if (opts.minPriceUsd && opts.minPriceUsd > 0) params._udlo = String(opts.minPriceUsd);
+  const data = await ebaySearch(params);
   const all = filterByAge(mapItems(data.organic_results || []), opts.daysBack * 24);
   if (!opts.sellerWhitelist || opts.sellerWhitelist.length === 0) return all;
   const wl = opts.sellerWhitelist.map(s => s.toLowerCase());

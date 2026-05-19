@@ -16,6 +16,9 @@ interface AggregateOptions {
   preferredSellers: string[];   // lowercase
   daysBack: number;              // initial 14
   extendedDaysBack: number;      // wenn 0 Treffer: 28
+  // Min-Preis-Floor (USD) damit niedrigpreisige Bulk/Raw-Auktionen nicht den
+  // Schnitt verzerren. Z.B. 50% des Katalog-PSA10-Preises (in USD).
+  minPriceUsd?: number;
 }
 
 export async function aggregatePsa10Price(opts: AggregateOptions): Promise<Psa10PriceResult | null> {
@@ -26,6 +29,7 @@ export async function aggregatePsa10Price(opts: AggregateOptions): Promise<Psa10
     query,
     daysBack: opts.daysBack,
     sellerWhitelist: opts.preferredSellers,
+    minPriceUsd: opts.minPriceUsd,
   });
 
   let reason = `${samples.length} Sale(s) der bevorzugten Verkaeufer in ${opts.daysBack} Tagen`;
