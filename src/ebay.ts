@@ -18,7 +18,17 @@
 //   Result: Akamai sieht "bekannter User mit gueltigen Cookies von vertrauter
 //   IP" und laesst durch.
 
-import { chromium, type Browser, type BrowserContext, type Page } from 'playwright';
+// playwright-extra mit Stealth-Plugin: patcht alle bekannten headless-Marker
+// (navigator.webdriver, missing chrome.runtime, permissions API, WebGL-Fingerprint,
+// Canvas, ...). Akamai Bot Manager wuerde sonst headless Chromium auf der VPS
+// erkennen und eine JS-Challenge ('Pardon Our Interruption') zeigen, die nie
+// auto-resolved.
+import { chromium as pwExtraChromium } from 'playwright-extra';
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+import { type Browser, type BrowserContext, type Page } from 'playwright';
+
+pwExtraChromium.use(StealthPlugin());
+const chromium = pwExtraChromium;
 import path from 'node:path';
 import fs from 'node:fs/promises';
 import type { EbaySale } from './types.js';

@@ -2,7 +2,10 @@
 // Testet ob Akamai die Anfrage akzeptiert, wenn Cookies + IP + echter Browser
 // zusammenpassen.
 
-import { chromium } from 'playwright';
+import { chromium as pwExtraChromium } from 'playwright-extra';
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+pwExtraChromium.use(StealthPlugin());
+const chromium = pwExtraChromium;
 
 const SOCKS = process.env.SOCKS_URL || 'socks5://127.0.0.1:1080';
 const STATE = './playwright-state/ebay.json';
