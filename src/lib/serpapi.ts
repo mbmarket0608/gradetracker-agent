@@ -54,6 +54,15 @@ export async function ebaySearch(params: Record<string, string>): Promise<Serpap
     throw new Error(`SerpAPI ${resp.status}: ${body.slice(0, 300)}`);
   }
   const data = await resp.json() as SerpapiEbayResponse;
-  if (data.error) throw new Error(`SerpAPI: ${data.error}`);
+  if (data.error) {
+    // Soft-Error "eBay hat 0 Treffer fuer diese Query" ist KEIN Fehler — z.B.
+    // wenn eine spezifische Karten-Historie keine Sold-Listings hat. Nur echte
+    // API-Fehler werfen (Invalid key, Quota, etc.).
+    const msg = data.error.toLowerCase();
+    if (msg.includes('no results') || msg.includes("hasn't returned") || msg.includes('did not return any results')) {
+      return { organic_results: [], search_information: { total_results: 0 } };
+    }
+    throw new Error(`SerpAPI: ${data.error}`);
+  }
   return data;
 }
