@@ -103,6 +103,29 @@ sudo -u "$SVC_USER" bash -c "cd $APP_DIR && PLAYWRIGHT_HOST_PLATFORM_OVERRIDE=ub
 log "Build"
 sudo -u "$SVC_USER" bash -c "cd $APP_DIR && npm run build"
 
+# ─── 6.5) microsocks-SOCKS5-Proxy (bindet eBay-Traffic auf wg0-Interface) ──
+# Wird vom Agent-Service als Playwright-Proxy genutzt. Source-IP 192.168.178.201
+# ist die wg0-Adresse → Traffic geht durch den WireGuard-Tunnel zur Heim-IP.
+log "Installiere microsocks + systemd-Unit"
+apt-get install -y microsocks
+cat > /etc/systemd/system/microsocks.service <<UNIT
+[Unit]
+Description=microsocks SOCKS5 (Source-Bind wg0 fuer eBay-Tunnel)
+After=network.target wg-quick@wg0.service
+Wants=wg-quick@wg0.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/microsocks -i 127.0.0.1 -p 1080 -b 192.168.178.201
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+systemctl daemon-reload
+systemctl enable --now microsocks.service
+
 # ─── 7) Systemd-Unit ─────────────────────────────────────────────────────
 log "Erzeuge systemd-Unit"
 cat > /etc/systemd/system/gradetracker-agent.service <<UNIT
