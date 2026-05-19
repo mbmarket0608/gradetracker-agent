@@ -3,9 +3,14 @@
 import { chromium } from 'playwright';
 import fs from 'node:fs/promises';
 
+const SOCKS_URL = process.env.CM_SOCKS_URL || 'socks5://127.0.0.1:1080';
+const USE_SOCKS = process.env.CM_USE_SOCKS !== '0';
+
 (async () => {
+  console.log('USE_SOCKS:', USE_SOCKS, 'URL:', SOCKS_URL);
   const browser = await chromium.launch({
     headless: !process.env.HEADFUL && !process.env.DISPLAY,
+    proxy: USE_SOCKS ? { server: SOCKS_URL } : undefined,
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
   });
 
