@@ -24,7 +24,7 @@ export async function searchSoldListings(opts: SearchSoldOptions): Promise<EbayS
     show_only: 'Sold',
     buying_format: 'Auction',
     _udlo: String(opts.minPriceUsd),
-    _sop: '13',   // Recently Ended
+    _sop: '1',    // Time: ending soonest (bei Sold = zuletzt verkauft zuerst)
   });
   return filterByAge(mapItems(data.organic_results || []), opts.hoursBack);
 }
@@ -40,7 +40,7 @@ export async function searchSoldHistory(opts: SearchHistoryOptions): Promise<Eba
     _nkw: opts.query,
     show_only: 'Sold',
     buying_format: 'Auction',
-    _sop: '13',
+    _sop: '1',
   });
   const all = filterByAge(mapItems(data.organic_results || []), opts.daysBack * 24);
   if (!opts.sellerWhitelist || opts.sellerWhitelist.length === 0) return all;
