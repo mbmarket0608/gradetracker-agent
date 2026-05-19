@@ -98,15 +98,37 @@ export async function runDaily(trigger: RunTrigger): Promise<{ runId: string; st
       }
 
       // ── Schritt 4: Cardmarket-Pick ──────────────────────────────────────
+      // Wenn CM aktuell durch Cloudflare blockt, persistieren wir den Eintrag
+      // trotzdem mit Platzhalter-Preis. Der User pflegt CM-Preis manuell im UI
+      // (er macht das eh als Teil seines morgendlichen Workflows).
       const language = pickLanguagePreference(cat);
-      const cmListing = await findCheapestQualifiedListing(cat, { preferredLanguage: language });
+      let cmListing: Awaited<ReturnType<typeof findCheapestQualifiedListing>> = null;
+      try {
+        cmListing = await findCheapestQualifiedListing(cat, { preferredLanguage: language });
+      } catch (e) {
+        console.warn(`[cm-error] ${cat.name}: ${e instanceof Error ? e.message : e}`);
+      }
       if (!cmListing) {
         skippedNoCm++;
         if (skippedNoCmNames.length < 5) skippedNoCmNames.push(cat.name);
-        console.log(`[skip] ${cat.name} (${cat.cardId || '—'}): kein qualifiziertes Cardmarket-Listing`);
-        continue;
+        // Platzhalter-Listing damit die Opportunity trotzdem persistiert wird
+        cmListing = {
+          listingUrl: '',
+          sellerName: '',
+          sellerCountry: 'XX',
+          priceEur: 0,
+          shippingEur: 0,
+          totalEur: 0,
+          conditionGrade: 'Unknown',
+          language,
+          productInfoRaw: '',
+          qualifying: false,
+          qualifyingReason: 'CM-Pick nicht moeglich (Cloudflare-Block) — manuell pflegen',
+        };
+        console.log(`[ok-no-cm] ${cat.name}: psa10=${psa10.weightedPriceEur}€ (CM manuell)`);
+      } else {
+        console.log(`[ok] ${cat.name}: cm=${cmListing.totalEur}€, psa10=${psa10.weightedPriceEur}€`);
       }
-      console.log(`[ok] ${cat.name}: cm=${cmListing.totalEur}€, psa10=${psa10.weightedPriceEur}€`);
 
       // ── Schritt 5: DQ-Check ─────────────────────────────────────────────
       const dqFlags = checkDataQuality(cat, psa10.weightedPriceEur, DQ_FACTOR);
@@ -126,7 +148,7 @@ export async function runDaily(trigger: RunTrigger): Promise<{ runId: string; st
     }
     stats.qualifiedOpps = qualified;
     await stepPricing.finish({
-      summary: `${qualified} Eintraege · ${skippedNoPsa10} ohne PSA10 · ${skippedNoCm} ohne CM-Listing`,
+      summary: `${qualified} Eintraege persistiert (${skippedNoCm} ohne CM-Preis) · ${skippedNoPsa10} ohne PSA10 verworfen`,
       qualified,
       skippedNoPsa10,
       skippedNoCm,
