@@ -23,7 +23,7 @@ import type { AgentRunStats, RunTrigger, DataQualityFlag } from './types.js';
 
 const SEARCH_TERM = process.env.EBAY_SEARCH_TERM || 'One Piece PSA 10';
 const MIN_PRICE_USD = parseFloat(process.env.EBAY_MIN_PRICE_USD || '700');
-const PREFERRED_SELLERS = (process.env.PSA10_PREFERRED_SELLERS || 'probstin123,dcsports87')
+const PREFERRED_SELLERS = (process.env.PSA10_PREFERRED_SELLERS || 'probstein123,dcsports87')
   .split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
 const DQ_FACTOR = parseFloat(process.env.DQ_PRICE_MISMATCH_FACTOR || '3');
 

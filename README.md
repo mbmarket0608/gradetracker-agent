@@ -94,7 +94,7 @@ HEADFUL=1 npm run dev
 Siehe `.env.example`. Wichtig:
 - `SUPABASE_SERVICE_ROLE_KEY` (NICHT anon — wir bypassen RLS für DB-Writes)
 - `ANTHROPIC_API_KEY` für Disqualifizierer-Heuristik + Datacheck-Bewertungen
-- `PSA10_PREFERRED_SELLERS=probstin123,dcsports87` — Komma-getrennt, Reihenfolge = Priorität
+- `PSA10_PREFERRED_SELLERS=probstein123,dcsports87` — Komma-getrennt, Reihenfolge = Priorität
 
 ## API
 
