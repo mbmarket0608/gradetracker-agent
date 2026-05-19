@@ -10,7 +10,10 @@ import { anthropic, MODELS, SYSTEM_CONTEXT } from './lib/anthropic.js';
 
 const STATE_DIR = 'playwright-state';
 const STATE_FILE = path.join(STATE_DIR, 'cardmarket.json');
-const HEADFUL = process.env.HEADFUL === '1';
+const FORCE_HEADED = process.env.HEADFUL === '1' || !!process.env.DISPLAY;
+const SOCKS_URL = process.env.CM_SOCKS_URL || 'socks5://127.0.0.1:1080';
+const USE_SOCKS = process.env.CM_USE_SOCKS !== '0';  // default an (Tunnel zur Heim-IP)
+const THROTTLE_MS = parseInt(process.env.CM_THROTTLE_MS || '2500', 10);
 
 const SHIPPING_DE = parseFloat(process.env.SHIPPING_DE_EUR || '10');
 const SHIPPING_EU_AVG = (parseFloat(process.env.SHIPPING_EU_MIN_EUR || '20') + parseFloat(process.env.SHIPPING_EU_MAX_EUR || '40')) / 2;
@@ -20,7 +23,8 @@ let context: BrowserContext | null = null;
 
 async function ensureBrowser(): Promise<{ page: Page }> {
   if (!browser) browser = await chromium.launch({
-    headless: !HEADFUL,
+    headless: !FORCE_HEADED,
+    proxy: USE_SOCKS ? { server: SOCKS_URL } : undefined,
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
@@ -60,7 +64,17 @@ interface FindOptions {
 // Findet das guenstigste qualifizierte NM-Listing fuer eine Karte.
 // Nutzt die Produkt-URL aus dem Katalog falls vorhanden, sonst geht's ueber
 // die Cardmarket-Suche.
+// Drosselt aufeinanderfolgende CM-Calls — sonst rate-limited Cloudflare uns
+// schnell (HTTP 429). 2.5s zwischen Anfragen scheint sicher.
+let lastCallAt = 0;
+async function throttle(): Promise<void> {
+  const elapsed = Date.now() - lastCallAt;
+  if (elapsed < THROTTLE_MS) await new Promise(r => setTimeout(r, THROTTLE_MS - elapsed));
+  lastCallAt = Date.now();
+}
+
 export async function findCheapestQualifiedListing(card: CatalogEntry, opts: FindOptions): Promise<CardmarketListing | null> {
+  await throttle();
   const { page } = await ensureBrowser();
   try {
     const productUrl = await findProductUrl(page, card, opts.preferredLanguage);
