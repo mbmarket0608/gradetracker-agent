@@ -1,7 +1,10 @@
 // Diagnose: oeffnet eine Cardmarket-Produktseite und prueft welche Selektoren
 // fuer die Listings (Verkaeufer-Rows) tatsaechlich matchen.
 
-import { chromium } from 'playwright';
+import { chromium as pwExtraChromium } from 'playwright-extra';
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+pwExtraChromium.use(StealthPlugin());
+const chromium = pwExtraChromium;
 import fs from 'node:fs/promises';
 
 const SOCKS_URL = process.env.CM_SOCKS_URL || 'socks5://127.0.0.1:1080';
@@ -30,7 +33,16 @@ const URL = 'https://www.cardmarket.com/de/OnePiece/Products/Singles/The-Best-Vo
 
   console.log('Navigating to:', URL);
   const resp = await page.goto(URL, { waitUntil: 'domcontentloaded', timeout: 30_000 });
-  console.log('HTTP:', resp?.status(), '| Title:', await page.title());
+  console.log('Initial HTTP:', resp?.status(), '| Title:', await page.title());
+
+  // Warte auf Cloudflare-Challenge
+  for (let i = 0; i < 20; i++) {
+    const t = await page.title().catch(() => '');
+    if (!/just a moment|checking your browser/i.test(t)) break;
+    console.log('  ...warte auf Cloudflare-Resolve, Title:', t);
+    await page.waitForTimeout(1000);
+  }
+  console.log('After-wait Title:', await page.title());
 
   // Pruefe gaengige Selektoren fuer eine Listing-Row
   const candidates = [

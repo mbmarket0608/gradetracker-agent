@@ -2,7 +2,15 @@
 // Disqualifizierer-Heuristik wird per Claude (Haiku) entschieden — Audit-fest
 // + erweiterbar ohne Code-Aenderung.
 
-import { chromium, type Browser, type BrowserContext, type Page } from 'playwright';
+// Cloudflare auf Cardmarket-Produktseiten zeigt 'Just a moment...'-Challenges
+// — playwright-extra + Stealth-Plugin patcht die typischen Headless-Marker,
+// damit Cloudflare die Challenge auto-resolved.
+import { chromium as pwExtraChromium } from 'playwright-extra';
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+import { type Browser, type BrowserContext, type Page } from 'playwright';
+
+pwExtraChromium.use(StealthPlugin());
+const chromium = pwExtraChromium;
 import path from 'node:path';
 import fs from 'node:fs/promises';
 import type { CatalogEntry, CardmarketListing } from './types.js';
@@ -64,6 +72,18 @@ interface FindOptions {
 // Findet das guenstigste qualifizierte NM-Listing fuer eine Karte.
 // Nutzt die Produkt-URL aus dem Katalog falls vorhanden, sonst geht's ueber
 // die Cardmarket-Suche.
+// Wartet auf Cloudflare-Challenge-Auto-Resolve (Title "Just a moment...").
+// Stealth-Plugin laesst Cloudflare-JS normal laufen → Challenge sollte sich
+// innerhalb von ~5-10 Sek selbst auflösen.
+async function waitPastCloudflareChallenge(page: Page): Promise<void> {
+  for (let i = 0; i < 20; i++) {
+    const t = await page.title().catch(() => '');
+    if (!/just a moment|checking your browser/i.test(t)) return;
+    await page.waitForTimeout(1000);
+  }
+  // Bleibt → throw, wird im Aufrufer als 'kein Listing' behandelt.
+}
+
 // Drosselt aufeinanderfolgende CM-Calls — sonst rate-limited Cloudflare uns
 // schnell (HTTP 429). 2.5s zwischen Anfragen scheint sicher.
 let lastCallAt = 0;
@@ -81,6 +101,7 @@ export async function findCheapestQualifiedListing(card: CatalogEntry, opts: Fin
     if (!productUrl) return null;
 
     await page.goto(productUrl, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+    await waitPastCloudflareChallenge(page);
 
     // TODO Live-Test: Filter auf NM-Kondition setzen (Cardmarket-Filter-UI)
     // await page.locator('[data-testid="filter-condition-NM"]').click();
