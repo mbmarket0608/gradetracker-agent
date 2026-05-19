@@ -74,7 +74,15 @@ function mapItems(items: SerpapiEbayItem[]): EbaySale[] {
 }
 
 function filterByAge(items: EbaySale[], hoursBack: number): EbaySale[] {
-  const cutoffMs = Date.now() - hoursBack * 3_600_000;
+  // SerpAPI liefert sold_date nur tagesgenau (z.B. "May 18, 2026"), parsed als
+  // 00:00 UTC. Mit Stunden-Cutoff wuerden Items von heute morgen schon vor
+  // 24h "verkauft" sein. Runden auf Tages-Boundary: cutoff = Mitternacht des
+  // Tages vor X (Math.ceil(hoursBack/24)) Tagen.
+  const daysBack = Math.max(1, Math.ceil(hoursBack / 24));
+  const cutoff = new Date();
+  cutoff.setHours(0, 0, 0, 0);
+  cutoff.setDate(cutoff.getDate() - (daysBack - 1));
+  const cutoffMs = cutoff.getTime();
   return items.filter(it => new Date(it.soldDate).getTime() >= cutoffMs);
 }
 
