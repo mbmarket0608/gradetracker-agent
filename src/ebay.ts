@@ -34,7 +34,10 @@ import fs from 'node:fs/promises';
 import type { EbaySale } from './types.js';
 
 const STATE_FILE = path.join('playwright-state', 'ebay.json');
-const HEADFUL = process.env.HEADFUL === '1';
+// Headed-Mode wenn DISPLAY gesetzt (z.B. Xvfb-Display auf VPS) ODER explizit
+// HEADFUL=1. Headless wuerde Akamai Bot Manager als Bot erkennen — selbst mit
+// playwright-extra Stealth.
+const FORCE_HEADED = process.env.HEADFUL === '1' || !!process.env.DISPLAY;
 const SOCKS_URL = process.env.SOCKS_URL || 'socks5://127.0.0.1:1080';
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36';
 
@@ -48,7 +51,7 @@ async function fileExists(p: string): Promise<boolean> {
 async function ensureBrowser(): Promise<{ page: Page }> {
   if (!browser) {
     browser = await chromium.launch({
-      headless: !HEADFUL,
+      headless: !FORCE_HEADED,
       proxy: { server: SOCKS_URL },
       args: [
         '--no-sandbox',

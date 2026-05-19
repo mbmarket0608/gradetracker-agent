@@ -103,6 +103,29 @@ sudo -u "$SVC_USER" bash -c "cd $APP_DIR && PLAYWRIGHT_HOST_PLATFORM_OVERRIDE=ub
 log "Build"
 sudo -u "$SVC_USER" bash -c "cd $APP_DIR && npm run build"
 
+# ─── 6.4) Xvfb (virtuelles X-Display) fuer headed Chromium ────────────────
+# Akamai Bot Manager erkennt headless Chromium auch mit Stealth-Plugin als Bot.
+# Mit Xvfb laeuft Chromium im 'echten' Modus (headless: false) auf einem
+# virtuellen Display — keine headless-Marker mehr im JS-Environment.
+log "Installiere Xvfb + systemd-Unit"
+apt-get install -y xvfb
+cat > /etc/systemd/system/xvfb.service <<UNIT
+[Unit]
+Description=Xvfb virtual display :99 fuer headed Chromium
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/Xvfb :99 -screen 0 1366x900x24 -ac +extension RANDR
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+systemctl daemon-reload
+systemctl enable --now xvfb.service
+
 # ─── 6.5) microsocks-SOCKS5-Proxy (bindet eBay-Traffic auf wg0-Interface) ──
 # Wird vom Agent-Service als Playwright-Proxy genutzt. Source-IP 192.168.178.201
 # ist die wg0-Adresse → Traffic geht durch den WireGuard-Tunnel zur Heim-IP.
@@ -131,7 +154,8 @@ log "Erzeuge systemd-Unit"
 cat > /etc/systemd/system/gradetracker-agent.service <<UNIT
 [Unit]
 Description=GradeTracker Daily-Run Agent
-After=network.target
+After=network.target xvfb.service microsocks.service wg-quick@wg0.service
+Wants=xvfb.service microsocks.service
 
 [Service]
 Type=simple
@@ -140,6 +164,7 @@ WorkingDirectory=$APP_DIR
 EnvironmentFile=$APP_DIR/.env
 Environment=PLAYWRIGHT_HOST_PLATFORM_OVERRIDE=ubuntu24.04-x64
 Environment=PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS=1
+Environment=DISPLAY=:99
 ExecStart=/usr/bin/node $APP_DIR/dist/index.js
 Restart=on-failure
 RestartSec=10

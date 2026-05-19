@@ -14,8 +14,10 @@ const URL = 'https://www.ebay.com/sch/i.html?_nkw=One+Piece+PSA+10&LH_Sold=1&LH_
 
 (async () => {
   console.log('Launching Chromium with SOCKS:', SOCKS);
+  const headless = !process.env.DISPLAY && process.env.HEADFUL !== '1';
+  console.log('Headless mode:', headless, '(DISPLAY=', process.env.DISPLAY, ')');
   const browser = await chromium.launch({
-    headless: true,
+    headless,
     proxy: { server: SOCKS },
     args: ['--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
   });
