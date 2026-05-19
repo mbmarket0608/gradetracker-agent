@@ -124,17 +124,23 @@ export async function findCheapestQualifiedListing(card: CatalogEntry, opts: Fin
 // ─── Helpers ─────────────────────────────────────────────────────────────
 
 async function findProductUrl(page: Page, card: CatalogEntry, language: 'Englisch' | 'Japanisch'): Promise<string | null> {
-  // Wenn Katalog eine Cardmarket-ID hat, koennten wir die direkt zur URL
-  // umsetzen — Cardmarket-Produktseiten haben aber Slug-basierte URLs, kein
-  // ID-basiertes Routing. Wir suchen ueber die Suchleiste.
-  const langSlug = language === 'Englisch' ? '1' : '6';
+  // Cardmarket-Suche: /Products/Search?searchString=...
+  // (vorheriger Pfad /Cards/{q} gibt es nicht, war falsch).
+  // language-Param ist nicht im Search-URL — den setzen wir spaeter auf der
+  // Produkt-Seite via Filter, oder die Cookies haben den default schon.
   const game = mapTcgToGame(card.tcg);
-  const q = `${card.name} ${card.cardId || ''}`.trim();
-  const searchUrl = `https://www.cardmarket.com/de/${game}/Cards/${encodeURIComponent(q)}?language=${langSlug}`;
+  // Klammern, Punkte und V.x-Marker stoeren Cardmarket-Suche. Nur Name + cardId.
+  const cleanName = card.name.replace(/\([^)]*\)/g, '').replace(/[.,]/g, '').replace(/\s+/g, ' ').trim();
+  const q = `${cleanName} ${card.cardId || ''}`.trim();
+  const searchUrl = `https://www.cardmarket.com/de/${game}/Products/Search?searchString=${encodeURIComponent(q)}`;
   await page.goto(searchUrl, { waitUntil: 'domcontentloaded', timeout: 60_000 });
-  // TODO Live-Test: korrekten Treffer auswaehlen — Cardmarket-Suche zeigt
-  // eine Trefferliste; wir nehmen den ersten Produkt-Link, der zum cardId
-  // passt.
+
+  // Wenn Cardmarket direkt zur Produktseite redirected (bei eindeutigem Treffer):
+  if (page.url().includes('/Products/Singles/')) {
+    return page.url();
+  }
+
+  // Sonst: Suchtreffer-Liste. Wir nehmen den ersten Produkt-Link.
   const productLink = await page.$eval(
     'a[href*="/Products/Singles/"]',
     (el: Element) => (el as HTMLAnchorElement).href,
